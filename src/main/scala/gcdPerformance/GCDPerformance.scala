@@ -1,0 +1,5 @@
+package gcdPerformance
+
+class GCDPerformance {
+
+}
