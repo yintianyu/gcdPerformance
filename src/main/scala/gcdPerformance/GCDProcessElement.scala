@@ -14,7 +14,7 @@ class ioBetweenUints extends Bundle{
 
 
 
-class GCDProcessUnit extends Module{
+class GCDProcessElement extends Module{
     val io = IO(new Bundle{
         val last = new ioBetweenUints()
         val next = Flipped(new ioBetweenUints())
