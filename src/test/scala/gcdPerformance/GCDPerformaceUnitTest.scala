@@ -69,7 +69,7 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
     private val gcd = c
 
     var cycle: Int = 0
-    for(i <- 1 to 20 by 7) {
+    for (i <- 1 to 20 by 7) {
         for (j <- 1 to 20 by 3) {
             poke(gcd.io.opa, i)
             poke(gcd.io.opb, j)
@@ -81,8 +81,8 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
             val result = peek(gcd.io.result)
             val done = peek(gcd.io.done)
             val ready = peek(gcd.io.ready)
-//            printf("Cycle %d, result = %d, done = %d, ready = %d\n",cycle, result, done, ready)
-//            printf("**************************************************expected = %d, steps = %d\n", expected_gcd, steps)
+            printf("Cycle %d, result = %d, done = %d, ready = %d\n",cycle, result, done, ready)
+            printf("**************************************************expected = %d, steps = %d\n", expected_gcd, steps)
         }
     }
 
@@ -121,13 +121,13 @@ class GCDPerformanceTester extends ChiselFlatSpec {
     else {
         Array("firrtl")
     }
-//    for ( backendName <- backendNames ) {
-//        "GCD" should s"calculate proper greatest common denominator (with $backendName)" in {
-//            Driver(() => new GCDPerformance, backendName) {
-//                c => new GCDPerformanceUnitTester(c)
-//            } should be (true)
-//        }
-//    }
+    for ( backendName <- backendNames ) {
+        "GCD" should s"calculate proper greatest common denominator (with $backendName)" in {
+            Driver(() => new GCDPerformance, backendName) {
+                c => new GCDPerformanceUnitTester(c)
+            } should be (true)
+        }
+    }
 
     "Basic test using Driver.execute" should "be used as an alternative way to run specification" in {
         iotesters.Driver.execute(Array(), () => new GCDPerformance) {

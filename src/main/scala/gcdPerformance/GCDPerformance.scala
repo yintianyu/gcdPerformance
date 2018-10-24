@@ -1,3 +1,4 @@
+
 package gcdPerformance
 import chisel3._
 import chisel3.util._
@@ -41,14 +42,19 @@ class GCDPerformance extends Module{
         ROBWritePointer_r := ROBWritePointer_r + 1.U(log2Ceil(ROB_DEPTH).W)
     }
 
-//    printf("PE0: a_r = %d, b_r = %d\n", processElements(0).next.opa, processElements(0).next.opb)
-//    printf("PE1: a_r = %d, b_r = %d\n", processElements(1).next.opa, processElements(1).next.opb)
+    printf("in:  a_r = %d, b_r = %d\n", processElements(0).last.opa, processElements(0).last.opb)
+    printf("PE0: a_r = %d, b_r = %d\n", processElements(0).next.opa, processElements(0).next.opb)
+    printf("PE1: a_r = %d, b_r = %d\n", processElements(1).next.opa, processElements(1).next.opb)
+    printf("BOR: BOR[0] = %d\n", vecROBData_r(0))
+    //printf("BOR: BOR[1] = %d\n", vecROBData_r(1))
+    //printf("BOR: BOR[2] = %d\n", vecROBData_r(2))
+
 
 
 
     for (i <- 0 until (PIPELINE_STAGE - 1) by 1){
-        processElements(i+1).last := processElements(i).next
-        processElements(i).ready_in := processElements(i+1).ready_out
+        processElements(i + 1).last := processElements(i).next
+        processElements(i).ready_in := processElements(i + 1).ready_out
     }
 
 
