@@ -9,7 +9,9 @@ class ioBetweenUints extends Bundle{
     val opa = Input(UInt(OPERAND_WIDTH.W))
     val opb = Input(UInt(OPERAND_WIDTH.W))
     val record = Input(UInt(RECORD_WIDTH.W))
+    val ROBIndex = Input(UInt(log2Ceil(ROB_DEPTH).W))
     val valid = Input(Bool())
+    val done = Input(Bool())
     val ready = Output(Bool())
 }
 
@@ -22,13 +24,14 @@ class GCDProcessElement extends Module{
         val done = Output(Bool())
         val result = Output(UInt(OPERAND_WIDTH.W))
     })
-
     val a_r = RegInit(0.U(OPERAND_WIDTH.W))
     val b_r = RegInit(0.U(OPERAND_WIDTH.W))
     val record_r = RegInit(0.U(RECORD_WIDTH.W))
     val nextValid_r = RegInit(0.U(Bool()))
     val result_r = RegInit(0.U(OPERAND_WIDTH.W))
     val done_r = RegInit(0.U(Bool()))
+    val ROBIndex_r = RegInit(0.U(log2Ceil(PIPELINE_STAGE).W))
+
 
     val bothEven = !(io.last.opa(0) || io.last.opb(0))
     val onlyAEven = !io.last.opa(0) && io.last.opb(0)
@@ -58,12 +61,17 @@ class GCDProcessElement extends Module{
         b_r := Mux(bLarger, minusDifference, io.last.opb)
         record_r := io.last.record
     }
-    nextValid_r := io.last.valid && io.next.ready
+    when(io.last.valid){
+        ROBIndex_r := io.last.ROBIndex
+    }
+    nextValid_r := io.last.valid && io.next.ready && !io.last.done
     io.next.valid := nextValid_r
     io.next.opa := a_r
     io.next.opb := b_r
     io.next.record := record_r
+    io.next.done := done
     io.last.ready := io.next.valid
+    io.next.ROBIndex := ROBIndex_r
 
     done_r := done
     when(done)
