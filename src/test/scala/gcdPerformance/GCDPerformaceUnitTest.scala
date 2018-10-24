@@ -68,23 +68,24 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
 
     private val gcd = c
 
-    for(i <- 1 to 400 by 7) {
-        for (j <- 1 to 400 by 3) {
+    var cycle: Int = 0
+    for(i <- 1 to 20 by 7) {
+        for (j <- 1 to 20 by 3) {
             poke(gcd.io.opa, i)
             poke(gcd.io.opb, j)
-            poke(gcd.io.loadingValues, value=1)
+            poke(gcd.io.valid, value=1)
             step(1)
-            poke(gcd.io.loadingValues, value=0)
+            cycle += 1
 
             val (expected_gcd, steps) = computeGcdWithStein(i, j)
-            val (absolute_true, _) = computeGcd(i, j)
-
-            step(steps) // -1 is because we step(1) already to toggle the enable
-            assert(expected_gcd == absolute_true)
-            expect(gcd.io.result, expected_gcd)
-            expect(gcd.io.done, expected=1)
+            val result = peek(gcd.io.result)
+            val done = peek(gcd.io.done)
+            val ready = peek(gcd.io.ready)
+//            printf("Cycle %d, result = %d, done = %d, ready = %d\n",cycle, result, done, ready)
+//            printf("**************************************************expected = %d, steps = %d\n", expected_gcd, steps)
         }
     }
+
 //    val i = 100
 //    val j = 70
 //    poke(gcd.io.opa, i)
@@ -120,13 +121,13 @@ class GCDPerformanceTester extends ChiselFlatSpec {
     else {
         Array("firrtl")
     }
-    for ( backendName <- backendNames ) {
-        "GCD" should s"calculate proper greatest common denominator (with $backendName)" in {
-            Driver(() => new GCDPerformance, backendName) {
-                c => new GCDPerformanceUnitTester(c)
-            } should be (true)
-        }
-    }
+//    for ( backendName <- backendNames ) {
+//        "GCD" should s"calculate proper greatest common denominator (with $backendName)" in {
+//            Driver(() => new GCDPerformance, backendName) {
+//                c => new GCDPerformanceUnitTester(c)
+//            } should be (true)
+//        }
+//    }
 
     "Basic test using Driver.execute" should "be used as an alternative way to run specification" in {
         iotesters.Driver.execute(Array(), () => new GCDPerformance) {

@@ -12,13 +12,14 @@ class GCDPerformance extends Module{
         val done = Output(Bool())
         val result = Output(UInt(OPERAND_WIDTH.W))
     })
+
     // Output Registers
-    val done_r = RegInit(0.U(Bool()))
+    val done_r = RegInit(0.U(1.W))
     val result_r = RegInit(0.U(OPERAND_WIDTH.W))
 
     // Reorder Buffer registers
-    val vecROBData_r = RegInit(Vec(Seq.fill(ROB_DEPTH)(0.U(OPERAND_WIDTH.W))))
-    val vecROBValid_r = RegInit(Vec(Seq.fill(ROB_DEPTH)(0.U(Bool()))))
+    val vecROBData_r = RegInit(VecInit(Seq.fill(ROB_DEPTH)(0.U(OPERAND_WIDTH.W))))
+    val vecROBValid_r = RegInit(VecInit(Seq.fill(ROB_DEPTH)(0.U(1.W))))
     val ROBCommitPointer_r = RegInit(0.U(log2Ceil(ROB_DEPTH).W))
     val ROBWritePointer_r = RegInit(0.U(log2Ceil(ROB_DEPTH).W))
 
@@ -26,29 +27,44 @@ class GCDPerformance extends Module{
     io.result := result_r
 
 
-    val processElements = new Array[GCDProcessElement](PIPELINE_STAGE)
-    processElements(0).io.last.opa := io.opa
-    processElements(0).io.last.opb := io.opb
-    processElements(0).io.last.valid := io.valid && processElements(0).io.last.ready
-    processElements(0).io.last.record := 0.U(RECORD_WIDTH.W)
-    processElements(0).io.last.ROBIndex := ROBWritePointer_r
-    io.ready := processElements(0).io.last.ready
+//    val processElements = Vec.fill(PIPELINE_STAGE) {Module(new GCDProcessElement()).io}
+    val processElements = VecInit(Seq.fill(PIPELINE_STAGE)(Module(new GCDProcessElement()).io))
+    processElements(0).last.opa := io.opa
+    processElements(0).last.opb := io.opb
+    processElements(0).last.valid := io.valid && processElements(0).ready_out
+    processElements(0).last.record := 0.U(RECORD_WIDTH.W)
+    processElements(0).last.ROBIndex := ROBWritePointer_r
+    processElements(0).last.done := 0.U(1.W)
+    io.ready := processElements(0).ready_out
 
-    when(processElements(0).io.last.valid){
+    when(processElements(0).last.valid){
         ROBWritePointer_r := ROBWritePointer_r + 1.U(log2Ceil(ROB_DEPTH).W)
     }
 
+//    printf("PE0: a_r = %d, b_r = %d\n", processElements(0).next.opa, processElements(0).next.opb)
+//    printf("PE1: a_r = %d, b_r = %d\n", processElements(1).next.opa, processElements(1).next.opb)
 
 
-    for (i <- 0 until (PIPELINE_STAGE - 2) by 1){
-        processElements(i).io.next <> processElements(i+1).io.last
+
+    for (i <- 0 until (PIPELINE_STAGE - 1) by 1){
+        processElements(i+1).last := processElements(i).next
+        processElements(i).ready_in := processElements(i+1).ready_out
     }
-    processElements(PIPELINE_STAGE-1).io.next.ready := 1.U(Bool())
+
+
+//    // Debug
+//    val pe1 = Module(new GCDProcessElement())
+//    val pe2 = Module(new GCDProcessElement())
+//    pe1.io.next <> pe2.io.last
+//
+//    // Debug end
+
+    processElements(PIPELINE_STAGE-1).ready_in := 1.U(1.W)
 
     for(i <- 0 until (PIPELINE_STAGE - 1) by 1){
-        when(processElements(i).io.done) {
-            vecROBData_r(processElements(i).io.next.ROBIndex) := processElements(i).io.result
-            vecROBValid_r(processElements(i).io.next.ROBIndex) := true.B
+        when(processElements(i).done) {
+            vecROBData_r(processElements(i).next.ROBIndex) := processElements(i).result
+            vecROBValid_r(processElements(i).next.ROBIndex) := true.B
         }
     }
     when(vecROBValid_r(ROBCommitPointer_r) === true.B){
@@ -56,6 +72,13 @@ class GCDPerformance extends Module{
         done_r := true.B
         vecROBValid_r(ROBCommitPointer_r) := false.B
         ROBCommitPointer_r := ROBCommitPointer_r + 1.U
+    }.otherwise{
+        done_r := false.B
     }
 
+}
+
+
+object ANDDriver extends App {
+    chisel3.Driver.execute(args, () => new GCDPerformance)
 }

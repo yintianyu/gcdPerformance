@@ -12,7 +12,6 @@ class ioBetweenUints extends Bundle{
     val ROBIndex = Input(UInt(log2Ceil(ROB_DEPTH).W))
     val valid = Input(Bool())
     val done = Input(Bool())
-    val ready = Output(Bool())
 }
 
 
@@ -21,15 +20,17 @@ class GCDProcessElement extends Module{
     val io = IO(new Bundle{
         val last = new ioBetweenUints()
         val next = Flipped(new ioBetweenUints())
+        val ready_in = Input(Bool())
+        val ready_out = Output(Bool())
         val done = Output(Bool())
         val result = Output(UInt(OPERAND_WIDTH.W))
     })
     val a_r = RegInit(0.U(OPERAND_WIDTH.W))
     val b_r = RegInit(0.U(OPERAND_WIDTH.W))
     val record_r = RegInit(0.U(RECORD_WIDTH.W))
-    val nextValid_r = RegInit(0.U(Bool()))
+    val nextValid_r = RegInit(0.U(1.W))
     val result_r = RegInit(0.U(OPERAND_WIDTH.W))
-    val done_r = RegInit(0.U(Bool()))
+    val done_r = RegInit(0.U(1.W))
     val ROBIndex_r = RegInit(0.U(log2Ceil(PIPELINE_STAGE).W))
 
 
@@ -64,13 +65,13 @@ class GCDProcessElement extends Module{
     when(io.last.valid){
         ROBIndex_r := io.last.ROBIndex
     }
-    nextValid_r := io.last.valid && io.next.ready && !io.last.done
+    nextValid_r := io.last.valid && io.ready_in && !io.last.done
     io.next.valid := nextValid_r
     io.next.opa := a_r
     io.next.opb := b_r
     io.next.record := record_r
     io.next.done := done
-    io.last.ready := io.next.valid
+    io.ready_out := true.B//io.next.valid
     io.next.ROBIndex := ROBIndex_r
 
     done_r := done
