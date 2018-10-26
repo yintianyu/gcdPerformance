@@ -4,6 +4,7 @@ package gcdPerformance
 
 import chisel3.iotesters
 import chisel3.iotesters.{ChiselFlatSpec, Driver, PeekPokeTester}
+import common.Constants._
 
 class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
     /**
@@ -68,35 +69,117 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
 
     private val gcd = c
 
+/* Big Test start*/
     var cycle: Int = 0
-    for (i <- 1 to 20 by 7) {
-        for (j <- 1 to 20 by 3) {
-            poke(gcd.io.opa, i)
-            poke(gcd.io.opb, j)
-            poke(gcd.io.valid, value=1)
-            step(1)
-            cycle += 1
+    var expectArray = new Array[Int](TEST_QUANTITY)
+    var actualArray = new Array[Int](TEST_QUANTITY)
+    var opaArray = new Array[Int](TEST_QUANTITY)
+    var opbArray = new Array[Int](TEST_QUANTITY)
+    var expectArrayCounter: Int = 0
+    var actualArrayCounter: Int = 0
+    val randomObj = new util.Random()
+    for (_ <- 0 until TEST_QUANTITY) {
+        val a = randomObj.nextInt(2147483647)
+        val b = randomObj.nextInt(2147483647)
+        poke(gcd.io.opa, a)
+        poke(gcd.io.opb, b)
+        poke(gcd.io.valid, value=1)
+        step(1)
+        cycle += 1
 
-            val (expected_gcd, steps) = computeGcdWithStein(i, j)
-            val result = peek(gcd.io.result)
-            val done = peek(gcd.io.done)
-            val ready = peek(gcd.io.ready)
-            printf("Cycle %d, result = %d, done = %d, ready = %d\n",cycle, result, done, ready)
-            printf("**************************************************expected = %d, steps = %d\n", expected_gcd, steps)
+        val (expected_gcd, steps) = computeGcdWithStein(a, b)
+        val result = peek(gcd.io.result)
+        val done = peek(gcd.io.done)
+        expectArray(expectArrayCounter) = expected_gcd
+        opaArray(expectArrayCounter) = a
+        opbArray(expectArrayCounter) = b
+        expectArrayCounter += 1
+        if(1 == done){
+            actualArray(actualArrayCounter) = result.toInt
+            actualArrayCounter += 1
+        }
+//        printf("Cycle %d, result = %d, done = %d, ready = %d\n",cycle, result, done, ready)
+//        printf("**************************************************expected = %d, steps = %d\n", expected_gcd, steps)
+
+    }
+    while(actualArrayCounter < expectArrayCounter){
+        step(1)
+        val result = peek(gcd.io.result)
+        val done = peek(gcd.io.done)
+        cycle +=1
+        if(1 == done){
+            actualArray(actualArrayCounter) = result.toInt
+            actualArrayCounter += 1
         }
     }
+    var correctFlag: Boolean = true
+    for(i <- 0 until actualArrayCounter){
+        if (expectArray(i) != actualArray(i)){
+            printf("!!!!!!!!!!!!!!!!!Error: No.%d, opa = %d, opb = %d, expect= %d, result= %d\n", i,
+                opaArray(i), opbArray(i), expectArray(i), actualArray(i))
+            correctFlag = false
+        }
+        else{
+            printf("No.%d, opa = %d, opb = %d, expect: %d, result: %d\n", i, opaArray(i), opbArray(i),
+                expectArray(i), actualArray(i))
+        }
+//        printf("No.%d, expect: %d, result: %d\n", i, expectArray(i), actualArray(i))
+    }
+    printf("Clock Cycles = %d\n", cycle)
+    assert(correctFlag)
+/* Big Test end*/
 
-//    val i = 100
-//    val j = 70
+//
+//    var i = 691559254
+//    var j = 1057066721
 //    poke(gcd.io.opa, i)
 //    poke(gcd.io.opb, j)
-//    poke(gcd.io.loadingValues, value=1)
+//    poke(gcd.io.valid, value=1)
 //    step(1)
-//    poke(gcd.io.loadingValues, value=0)
 //
-//    val (expected_gcd, steps) = computeGcdWithStein(i, j)
-//    val (absolute_true, _) = computeGcd(i, j)
 //
+//    var (expected_gcd1, steps1) = computeGcdWithStein(i, j)
+//    var (absolute_true1, _) = computeGcd(i, j)
+//
+//
+//    i = 996584635
+//    j = 2002456335
+//    poke(gcd.io.opa, i)
+//    poke(gcd.io.opb, j)
+//    poke(gcd.io.valid, value=1)
+//    step(1)
+//
+//
+//    var (expected_gcd2, steps2) = computeGcdWithStein(i, j)
+//    var (absolute_true2, _) = computeGcd(i, j)
+//
+//    var done = peek(gcd.io.done)
+//    var result = peek(gcd.io.result)
+//
+//    poke(gcd.io.valid, value=0)
+//
+//    var count = 0
+//
+//    while(count < 2){
+//        if(done == 1 && count == 0){
+//            count += 1
+//            printf("expected_gcd = %d, steps = %d, absolute_true = %d, result = %d\n", expected_gcd1, steps1,
+//                absolute_true1, result)
+//        }
+//        else if(done == 1 && count == 1){
+//            count += 1
+//            printf("expected_gcd = %d, steps = %d, absolute_true = %d, result = %d\n", expected_gcd2, steps2,
+//                absolute_true2, result)
+//        }
+//        step(1)
+//        done = peek(gcd.io.done)
+//        result = peek(gcd.io.result)
+//    }
+
+
+
+
+
 //    step(steps) // -1 is because we step(1) already to toggle the enable
 //    expect(gcd.io.result, expected_gcd)
 //    expect(gcd.io.done, expected=1)
@@ -115,7 +198,7 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
   */
 class GCDPerformanceTester extends ChiselFlatSpec {
     // Disable this until we fix isCommandAvailable to swallow stderr along with stdout
-    private val backendNames = if(firrtl.FileUtils.isCommandAvailable(Seq("verilator", "--version"))) {
+    private val backendNames = if(false && firrtl.FileUtils.isCommandAvailable(Seq("verilator", "--version"))) {
         Array("firrtl", "verilator")
     }
     else {

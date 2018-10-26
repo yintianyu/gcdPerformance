@@ -42,12 +42,7 @@ class GCDPerformance extends Module{
         ROBWritePointer_r := ROBWritePointer_r + 1.U(log2Ceil(ROB_DEPTH).W)
     }
 
-    printf("in:  a_r = %d, b_r = %d\n", processElements(0).last.opa, processElements(0).last.opb)
-    printf("PE0: a_r = %d, b_r = %d\n", processElements(0).next.opa, processElements(0).next.opb)
-    printf("PE1: a_r = %d, b_r = %d\n", processElements(1).next.opa, processElements(1).next.opb)
-    printf("BOR: BOR[0] = %d\n", vecROBData_r(0))
-    //printf("BOR: BOR[1] = %d\n", vecROBData_r(1))
-    //printf("BOR: BOR[2] = %d\n", vecROBData_r(2))
+
 
 
 
@@ -69,8 +64,8 @@ class GCDPerformance extends Module{
 
     for(i <- 0 until (PIPELINE_STAGE - 1) by 1){
         when(processElements(i).done) {
-            vecROBData_r(processElements(i).next.ROBIndex) := processElements(i).result
-            vecROBValid_r(processElements(i).next.ROBIndex) := true.B
+            vecROBData_r(processElements(i).ROBIndex) := processElements(i).result
+            vecROBValid_r(processElements(i).ROBIndex) := true.B
         }
     }
     when(vecROBValid_r(ROBCommitPointer_r) === true.B){
@@ -81,6 +76,19 @@ class GCDPerformance extends Module{
     }.otherwise{
         done_r := false.B
     }
+
+//    printf("in:  a_r = %d, b_r = %d\n", processElements(0).last.opa, processElements(0).last.opb)
+
+//    for(i <- 60 until 70){
+//        printf("PE%d: a_r = %d, b_r = %d, done = %d, valid = %d, record = %d, done_r = %d, result_r = %d, ROBIndex = %d\n", i.asUInt(8.W), processElements(i).next.opa,
+//            processElements(i).next.opb, processElements(i).next.done, processElements(i).next.valid,
+//            processElements(i).next.record, processElements(i).done, processElements(i).result,
+//            processElements(i).next.ROBIndex)
+//    }
+//    for(i <- 0 until 4){
+//        printf("ROB: ROB[%d] = %d, valid = %d\n",i.asUInt(8.W), vecROBData_r(i), vecROBValid_r(i))
+//    }
+//    printf("done_r = %d, result_r = %d, ROBCommitPointer = %d\n", done_r, result_r, ROBCommitPointer_r)
 
 }
 

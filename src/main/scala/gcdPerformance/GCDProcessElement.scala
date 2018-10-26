@@ -24,6 +24,7 @@ class GCDProcessElement extends Module{
         val ready_out = Output(Bool())
         val done = Output(Bool())
         val result = Output(UInt(OPERAND_WIDTH.W))
+        val ROBIndex = Output(UInt(log2Ceil(ROB_DEPTH).W))
     })
     val a_r = RegInit(0.U(OPERAND_WIDTH.W))
     val b_r = RegInit(0.U(OPERAND_WIDTH.W))
@@ -32,6 +33,7 @@ class GCDProcessElement extends Module{
     val result_r = RegInit(0.U(OPERAND_WIDTH.W))
     val done_r = RegInit(0.U(1.W))
     val ROBIndex_r = RegInit(0.U(log2Ceil(PIPELINE_STAGE).W))
+    val doneROBIndex_r = RegInit(0.U(log2Ceil(PIPELINE_STAGE).W))
 
 
     val bothEven = !(io.last.opa(0) || io.last.opb(0))
@@ -51,9 +53,11 @@ class GCDProcessElement extends Module{
     }
     when(onlyAEven && io.last.valid){
         a_r := io.last.opa >> 1
+        b_r := io.last.opb
         record_r := io.last.record
     }
     when(onlyBEven && io.last.valid){
+        a_r := io.last.opa
         b_r := io.last.opb >> 1
         record_r := io.last.record
     }
@@ -64,6 +68,9 @@ class GCDProcessElement extends Module{
     }
     when(io.last.valid){
         ROBIndex_r := io.last.ROBIndex
+    }.otherwise{
+        a_r := 0.U(OPERAND_WIDTH.W)
+        b_r := 0.U(OPERAND_WIDTH.W)
     }
     nextValid_r := io.last.valid && io.ready_in && !io.last.done
     io.next.valid := nextValid_r
@@ -78,7 +85,9 @@ class GCDProcessElement extends Module{
     when(done)
     {
         result_r := Mux(aZero, b_r, a_r) << record_r
+        doneROBIndex_r := ROBIndex_r
     }
     io.done := done_r
     io.result := result_r
+    io.ROBIndex := doneROBIndex_r
 }
