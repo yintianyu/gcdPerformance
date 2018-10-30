@@ -30,20 +30,20 @@ class GCDProcessElement extends Module{
     val nextValid_r = RegInit(0.U(1.W))
     val result_r = RegInit(0.U(OPERAND_WIDTH.W))
     val done_r = RegInit(0.U(1.W))
-    val ROBIndex_r = RegInit(0.U(log2Ceil(PIPELINE_STAGE).W))
-    val doneROBIndex_r = RegInit(0.U(log2Ceil(PIPELINE_STAGE).W))
 
 
-    val bothEven = !(io.last.opa(0) || io.last.opb(0))
+    val aZero = a_r === 0.U(OPERAND_WIDTH.W)
+    val bZero = b_r === 0.U(OPERAND_WIDTH.W)
+    val bothZero = (io.last.opa === 0.U(OPERAND_WIDTH.W)) && (io.last.opb === 0.U(OPERAND_WIDTH.W))
+    val done = aZero ^ bZero
+    val bothEven = (!(io.last.opa(0) || io.last.opb(0))) && !bothZero
     val onlyAEven = !io.last.opa(0) && io.last.opb(0)
     val onlyBEven =  io.last.opa(0) && !io.last.opb(0)
     val bothOdd = io.last.opa(0) && io.last.opb(0)
     val difference = io.last.opa - io.last.opb
     val bLarger = difference(OPERAND_WIDTH-1)
     val minusDifference = io.last.opb - io.last.opa
-    val aZero = a_r === 0.U(OPERAND_WIDTH.W)
-    val bZero = b_r === 0.U(OPERAND_WIDTH.W)
-    val done = aZero ^ bZero
+
     val busy = !io.ready_in
     when(bothEven && io.last.valid){
         a_r := io.last.opa >> 1
@@ -71,19 +71,18 @@ class GCDProcessElement extends Module{
 //        a_r := 0.U(OPERAND_WIDTH.W)
 //        b_r := 0.U(OPERAND_WIDTH.W)
 //    }*/
-    nextValid_r := io.last.valid && io.ready_in
-    io.next.valid := nextValid_r
+    nextValid_r := /*io.last.valid &&*/ io.ready_in
+    io.next.valid := io.ready_in//nextValid_r
     io.next.opa := a_r
     io.next.opb := b_r
     io.next.record := record_r
     io.next.done := done
     io.ready_out := !busy
 
-    done_r := done && (doneROBIndex_r =/= ROBIndex_r)
+    done_r := done
     when(done)
     {
         result_r := Mux(aZero, b_r, a_r) << record_r
-        doneROBIndex_r := ROBIndex_r
     }
     io.done := done_r
     io.result := result_r
@@ -93,7 +92,6 @@ class GCDProcessElement extends Module{
 class GCDLastProcessElement extends Module{
     val io = IO(new Bundle{
         val last = new ioBetweenUints()
-//        val next = Flipped(new ioBetweenUints())
         val ready_in = Input(Bool())
         val ready_out = Output(Bool())
         val done = Output(Bool())
@@ -109,11 +107,12 @@ class GCDLastProcessElement extends Module{
 
     val aZero = a_r === 0.U(OPERAND_WIDTH.W)
     val bZero = b_r === 0.U(OPERAND_WIDTH.W)
+    val bothZero = aZero && bZero
     val busy = !io.ready_in || (!aZero && !bZero)
     val opa = Mux(busy, a_r, io.last.opa)
     val opb = Mux(busy, b_r, io.last.opb)
     val opRecord = Mux(busy, record_r, io.last.record)
-    val bothEven = !(opa(0) || opb(0))
+    val bothEven = (!(io.last.opa(0) || io.last.opb(0))) && !bothZero
     val onlyAEven = !opa(0) && opb(0)
     val onlyBEven =  opa(0) && !opb(0)
     val bothOdd = opa(0) && opb(0)
@@ -148,11 +147,6 @@ class GCDLastProcessElement extends Module{
 //        b_r := 0.U(OPERAND_WIDTH.W)
 //    }*/
     nextValid_r := io.last.valid && io.ready_in && !io.last.done
-//    io.next.valid := nextValid_r
-//    io.next.opa := a_r
-//    io.next.opb := b_r
-//    io.next.record := record_r
-//    io.next.done := done
     io.ready_out := !busy
 //    io.next.ROBIndex := ROBIndex_r
 
@@ -163,7 +157,7 @@ class GCDLastProcessElement extends Module{
     }
     io.done := done_r
     io.result := result_r
-    printf("LastPE: a_r = %d, b_r = %d, record_r = %d, busy = %d, done = %d, valid = %d, opa = %d, opb = %d," +
-            " io.last.opa = %d, io.last.opb = %d\n", a_r,
-        b_r, record_r, busy, done, io.last.valid, opa, opb, io.last.opa, io.last.opb)
+    printf("LastPE: a_r = %d, b_r = %d, record_r = %d, busy = %d, done = %d, valid = %d, opa = %d, opb = %d, " +
+            " io.last.opa = %d, io.last.opb = %d,result = %d\n", a_r,
+        b_r, record_r, busy, done_r, io.last.valid, opa, opb, io.last.opa, io.last.opb, result_r)
 }

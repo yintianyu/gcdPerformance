@@ -42,7 +42,7 @@ class GCDPerformance extends Module{
         processElements(i).ready_in := processElements(i + 1).ready_out
     }
     val lastProcessElement = Module(new GCDLastProcessElement())
-    lastProcessElement.io.last := processElements(PIPELINE_STAGE-2).next
+    //lastProcessElement.io.last := processElements(PIPELINE_STAGE-2).next
     lastProcessElement.io.ready_in := true.B
 
 
@@ -59,17 +59,18 @@ class GCDPerformance extends Module{
     result_r := lastProcessElement.io.result
 
 
-
     printf("in:  a_r = %d, b_r = %d\n", processElements(0).last.opa, processElements(0).last.opb)
 
     for(i <- 0 until PIPELINE_STAGE-1){
-        printf("PE%d: a_r = %d, b_r = %d, done = %d, valid = %d, record = %d, done_r = %d, result_r = %d\n", i.asUInt(8.W), processElements(i).next.opa,
+        printf("PE%d: a_r = %d, b_r = %d, done = %d, valid = %d, record = %d, done_r = %d, result_r = %d,ready_in = %d," +
+          "ready_out = %d\n", i.asUInt(8.W), processElements(i).next.opa,
             processElements(i).next.opb, processElements(i).next.done, processElements(i).next.valid,
-            processElements(i).next.record, processElements(i).done, processElements(i).result)
+            processElements(i).next.record, processElements(i).done, processElements(i).result,
+            processElements(i).ready_in, processElements(i).ready_out)
     }
     printf("PE%d: done_r = %d, result_r = %d\n", (PIPELINE_STAGE-1).U, lastProcessElement.io.done, lastProcessElement.io.result)
 
-    printf("done_r = %d, result_r = %d\n", done_r, result_r)
+    printf("done_r = %d, result_r = %d\n", io.done, io.result)
 
 }
 

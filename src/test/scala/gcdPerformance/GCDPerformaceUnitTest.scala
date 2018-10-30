@@ -55,7 +55,7 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
                 y /= 2
             }
             else{
-                x = x - y
+                x = (x - y) / 2
             }
             if (x < y){
                 val temp = x
@@ -73,6 +73,7 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
     var cycle: Int = 0
     var expectArray = new Array[Int](TEST_QUANTITY)
     var actualArray = new Array[Int](TEST_QUANTITY)
+    var depthArray = new Array[Int](TEST_QUANTITY)
     var opaArray = new Array[Int](TEST_QUANTITY)
     var opbArray = new Array[Int](TEST_QUANTITY)
     var expectArrayCounter: Int = 0
@@ -94,11 +95,12 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
 
         val (expected_gcd, steps) = computeGcdWithStein(a, b)
         val result = peek(gcd.io.result)
-        val done = peek(gcd.io.done)
-        val ready = peek(gcd.io.ready)
+        var done:Int = 0
+        done = peek(gcd.io.done).toInt
         expectArray(expectArrayCounter) = expected_gcd
         opaArray(expectArrayCounter) = a
         opbArray(expectArrayCounter) = b
+        depthArray(expectArrayCounter) = steps
         expectArrayCounter += 1
         if(1 == done){
             actualArray(actualArrayCounter) = result.toInt
@@ -106,7 +108,6 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
         }
 //        printf("Cycle %d, result = %d, done = %d, ready = %d\n",cycle, result, done, ready)
 //        printf("**************************************************expected = %d, steps = %d\n", expected_gcd, steps)
-
     }
     while(actualArrayCounter < expectArrayCounter){
         step(1)
@@ -121,13 +122,13 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
     var correctFlag: Boolean = true
     for(i <- 0 until actualArrayCounter){
         if (expectArray(i) != actualArray(i)){
-            printf("!!!!!!!!!!!!!!!!!Error: No.%d, opa = %d, opb = %d, expect= %d, result= %d\n", i,
-                opaArray(i), opbArray(i), expectArray(i), actualArray(i))
+            printf("!!!!!!!!!!!!!!!!!Error: No.%d, opa = %d, opb = %d,expectDepth = %d, expect= %d, result= %d\n", i,
+                opaArray(i), opbArray(i), depthArray(i), expectArray(i), actualArray(i))
             correctFlag = false
         }
         else{
-//            printf("No.%d, opa = %d, opb = %d, expect: %d, result: %d\n", i, opaArray(i), opbArray(i),
-//                expectArray(i), actualArray(i))
+            printf("No.%d, opa = %d, opb = %d,expectDepth = %d, expect: %d, result: %d\n", i, opaArray(i), opbArray(i),
+                depthArray(i), expectArray(i), actualArray(i))
         }
 //        printf("No.%d, expect: %d, result: %d\n", i, expectArray(i), actualArray(i))
     }
