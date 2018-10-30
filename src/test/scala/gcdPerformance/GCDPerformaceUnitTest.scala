@@ -79,8 +79,8 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
     var actualArrayCounter: Int = 0
     val randomObj = new util.Random()
     for (_ <- 0 until TEST_QUANTITY) {
-        val a = randomObj.nextInt(100)
-        val b = randomObj.nextInt(100)
+        val a = randomObj.nextInt(2147483647)
+        val b = randomObj.nextInt(2147483647)
         poke(gcd.io.opa, a)
         poke(gcd.io.opb, b)
         poke(gcd.io.valid, value = 0)
@@ -104,8 +104,8 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
             actualArray(actualArrayCounter) = result.toInt
             actualArrayCounter += 1
         }
-        printf("Cycle %d, result = %d, done = %d, ready = %d\n",cycle, result, done, ready)
-        printf("**************************************************expected = %d, steps = %d\n", expected_gcd, steps)
+//        printf("Cycle %d, result = %d, done = %d, ready = %d\n",cycle, result, done, ready)
+//        printf("**************************************************expected = %d, steps = %d\n", expected_gcd, steps)
 
     }
     while(actualArrayCounter < expectArrayCounter){
@@ -126,13 +126,13 @@ class GCDPerformanceUnitTester(c: GCDPerformance) extends PeekPokeTester(c) {
             correctFlag = false
         }
         else{
-            printf("No.%d, opa = %d, opb = %d, expect: %d, result: %d\n", i, opaArray(i), opbArray(i),
-                expectArray(i), actualArray(i))
+//            printf("No.%d, opa = %d, opb = %d, expect: %d, result: %d\n", i, opaArray(i), opbArray(i),
+//                expectArray(i), actualArray(i))
         }
-        printf("No.%d, expect: %d, result: %d\n", i, expectArray(i), actualArray(i))
+//        printf("No.%d, expect: %d, result: %d\n", i, expectArray(i), actualArray(i))
     }
     printf("Clock Cycles = %d\n", cycle)
-//    assert(correctFlag)
+    assert(correctFlag)
 /* Big Test end*/
 
 //

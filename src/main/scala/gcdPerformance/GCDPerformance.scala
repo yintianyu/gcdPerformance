@@ -18,14 +18,6 @@ class GCDPerformance extends Module{
     val done_r = RegInit(0.U(1.W))
     val result_r = RegInit(0.U(OPERAND_WIDTH.W))
 
-    // Reorder Buffer registers
-    val vecROBData_r = RegInit(VecInit(Seq.fill(ROB_DEPTH)(0.U(OPERAND_WIDTH.W))))
-    val vecROBValid_r = RegInit(VecInit(Seq.fill(ROB_DEPTH)(0.U(1.W))))
-    val ROBCommitPointer_r = RegInit(0.U(log2Ceil(ROB_DEPTH).W))
-    val ROBWritePointer_r = RegInit(0.U(log2Ceil(ROB_DEPTH).W))
-
-    val ROBDoneIndex = RegInit(0.U(log2Ceil(ROB_DEPTH).W))
-
     io.done := done_r
     io.result := result_r
 
@@ -36,13 +28,9 @@ class GCDPerformance extends Module{
     processElements(0).last.opb := io.opb
     processElements(0).last.valid := io.valid && processElements(0).ready_out
     processElements(0).last.record := 0.U(RECORD_WIDTH.W)
-    processElements(0).last.ROBIndex := ROBWritePointer_r
     processElements(0).last.done := 0.U(1.W)
     io.ready := processElements(0).ready_out
 
-    when(processElements(0).last.valid){
-        ROBWritePointer_r := ROBWritePointer_r + 1.U(log2Ceil(ROB_DEPTH).W)
-    }
 
 
 
@@ -67,38 +55,21 @@ class GCDPerformance extends Module{
 //    // Debug end
 
     processElements(PIPELINE_STAGE-2).ready_in := lastProcessElement.io.ready_out
+    done_r := lastProcessElement.io.done
+    result_r := lastProcessElement.io.result
 
-    for(i <- 0 until PIPELINE_STAGE-1 by 1){
-        when(processElements(i).done) {
-            vecROBData_r(processElements(i).ROBIndex) := processElements(i).result
-            vecROBValid_r(processElements(i).ROBIndex) := true.B
-        }
-    }
-    when(lastProcessElement.io.done){
-        vecROBData_r(lastProcessElement.io.ROBIndex) := lastProcessElement.io.result
-        vecROBValid_r(lastProcessElement.io.ROBIndex) := true.B
-    }
-    when(vecROBValid_r(ROBCommitPointer_r) === true.B){
-        result_r := vecROBData_r(ROBCommitPointer_r)
-        done_r := true.B
-        vecROBValid_r(ROBCommitPointer_r) := false.B
-        ROBCommitPointer_r := ROBCommitPointer_r + 1.U
-    }.otherwise{
-        done_r := false.B
-    }
+
 
     printf("in:  a_r = %d, b_r = %d\n", processElements(0).last.opa, processElements(0).last.opb)
 
-    for(i <- 0 until 20){
-        printf("PE%d: a_r = %d, b_r = %d, done = %d, valid = %d, record = %d, done_r = %d, result_r = %d, ROBIndex = %d\n", i.asUInt(8.W), processElements(i).next.opa,
+    for(i <- 0 until PIPELINE_STAGE-1){
+        printf("PE%d: a_r = %d, b_r = %d, done = %d, valid = %d, record = %d, done_r = %d, result_r = %d\n", i.asUInt(8.W), processElements(i).next.opa,
             processElements(i).next.opb, processElements(i).next.done, processElements(i).next.valid,
-            processElements(i).next.record, processElements(i).done, processElements(i).result,
-            processElements(i).next.ROBIndex)
+            processElements(i).next.record, processElements(i).done, processElements(i).result)
     }
-    for(i <- 0 until 10){
-        printf("ROB: ROB[%d] = %d, valid = %d\n",i.asUInt(8.W), vecROBData_r(i), vecROBValid_r(i))
-    }
-    printf("done_r = %d, result_r = %d, ROBCommitPointer = %d\n", done_r, result_r, ROBCommitPointer_r)
+    printf("PE%d: done_r = %d, result_r = %d\n", (PIPELINE_STAGE-1).U, lastProcessElement.io.done, lastProcessElement.io.result)
+
+    printf("done_r = %d, result_r = %d\n", done_r, result_r)
 
 }
 
